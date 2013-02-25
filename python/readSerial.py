@@ -10,17 +10,15 @@ EMONCMS_APIKEY = 'ad5d08fb3456418beb0d19d282fa9144' # Must be read and write one
 
 ser = serial.Serial('/dev/tty' + tty, 9600, timeout=5);
 pulsecount = 0
-lastPulse = 0
-ignoreFastPulse = 0.10 # Ignore extraneous pulses that come faster than this
 
-def SendPulse(power):
+def SendPulse(value, node = 1, key = 'power'):
 	global EMONCMS_APIKEY
 	global EMONCMS_SERVER
 
-	if (power < 20000):
+	if (value < 20000):
 
 		timenow = time.strftime('%s')
-		url = ("/emoncms/input/post?time=%s&node=1&json={power:%s}&apikey=%s" % (timenow, power, EMONCMS_APIKEY))
+		url = ("/emoncms/input/post?time=%s&node=%i&json={%s:%d}&apikey=%s" % (timenow, node, key, value, EMONCMS_APIKEY))
 		connection = httplib.HTTPConnection(EMONCMS_SERVER)
 		connection.request("GET", url)
 
@@ -31,8 +29,13 @@ while 1:
 		inputStuff = serialInput.strip().strip('\x00').split();
 	        # print "inputStuff: %s" % inputStuff
 		if inputStuff and inputStuff[1] and inputStuff[0] == "PulsePower:":
-			print "Pulse: %s w" % inputStuff[1]
+			pulsecount += 1;
+			print "Pulse %i: %s w" % (pulsecount, inputStuff[1])
 			SendPulse(float(inputStuff[1]))
+			if (pulsecount == 1000):
+				SendPulse(1.0, 1, 'kilowatts')
+				print "Kilowatt hour"
+				pulsecount = 0
 				
 	except KeyboardInterrupt:
 		print "Byebye"
