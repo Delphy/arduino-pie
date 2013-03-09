@@ -6,7 +6,7 @@ import time
 tty = "USB0" # For Arduino Nano v3
 
 EMONCMS_SERVER = '192.168.0.138'
-EMONCMS_APIKEY = 'ad5d08fb3456418beb0d19d282fa9144' # Must be read and write one!
+EMONCMS_APIKEY = 'a474356a3c04c8f162891959dd6edb76' # Must be read and write one!
 
 ser = serial.Serial('/dev/tty' + tty, 9600, timeout=5);
 pulsecount = 0
