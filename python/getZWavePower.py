@@ -11,10 +11,13 @@ from openzwave.controller import ZWaveController
 from openzwave.network import ZWaveNetwork
 from openzwave.option import ZWaveOption
 
+import statsd
+
+statsd.Connection.set_defaults(host='prodigy.local')
+gauge = statsd.Gauge('OpenZWave')
+
 device="/dev/zwave-aeon-s2"
 zwavenode=3
-EMONCMS_SERVER = '192.168.0.138'
-EMONCMS_APIKEY = 'a474356a3c04c8f162891959dd6edb76' # Must be read and write one!
 log="Debug"
 
 logging.basicConfig(level=logging.INFO)
@@ -72,14 +75,16 @@ if not network.is_ready:
     print "."
     print "Network is not ready but continue anyway"
 
+
 name_map = {
     1: 'TV',
-    2: 'HTPC',
+    2: 'Ouya',
     3: 'Amplifier',
-    4: 'ConsolesAndCable',
-    5: 'ServerPrinterMonitor',
-    6: 'RouterAndSwitches',
+    4: 'ConsolesCabinet',
+    5: 'Closet',
+    6: 'HTPC',
 }
+total = 0.0
 
 def show_node_power(nodeid):
     node = network.nodes[nodeid]
@@ -87,6 +92,7 @@ def show_node_power(nodeid):
     readings = {}
 
     for val in node.get_sensors():
+        print "%s %s %s" % (node.values[val].label, node.values[val].instance, node.get_sensor_value(val))
         if  node.values[val].instance not in  readings:
             readings[node.values[val].instance] = {}
         #if node.values[val].label == "Energy" or node.values[val].label == "Power":
@@ -97,23 +103,19 @@ def show_node_power(nodeid):
 
     return readings
 
-def SendValue(value, node = 1, key = 'power'):
-    global EMONCMS_APIKEY
-    global EMONCMS_SERVER
-
-    if (value < 20000):
-
-        timenow = time.strftime('%s')
-        url = ("/emoncms/input/post?time=%s&node=%i&json={%s:%f}&apikey=%s" % (timenow, node, key, value, EMONCMS_APIKEY))
-        connection = httplib.HTTPConnection(EMONCMS_SERVER)
-        connection.request("GET", url)
-
 data = show_node_power(zwavenode);
 print data
 
 for val in data:
     for readings in data[val]:
-        SendValue(data[val][readings], zwavenode, name_map[val] + "_" + readings)
+        gauge.send('LivingRoom.' + name_map[val], data[val][readings])
+        total += data[val][readings]
+
+
+gauge.send('LivingRoom.ConsolesAndCable', 0);
+gauge.send('LivingRoom.ServerPrinterMonitor', 0);
+gauge.send('LivingRoom.RouterAndSwitches', 0);
+gauge.send('LivingRoom.Total', total)
 
 
 network.stop()
