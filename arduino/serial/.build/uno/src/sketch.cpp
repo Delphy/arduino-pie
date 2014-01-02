@@ -17,9 +17,12 @@ int val = 0;
   int ppwh = 1; //1000 pulses/kwh = 1 pulse per wh
   int LDR_Pin = A0; //analog pin 0
 
+int led = 13;
+
 void setup()
 {
     Serial.begin(9600);
+    pinMode(led, OUTPUT);
 }
 
 void loop()
@@ -27,9 +30,11 @@ void loop()
 
     val = analogRead(analogPin);
     if (val >= 280) {
+        digitalWrite(led, HIGH);
         calculatePulse();
     }
     delay(20);
+    digitalWrite(led, LOW);
 }
 
 void calculatePulse()
